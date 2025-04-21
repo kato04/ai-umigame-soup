@@ -33,7 +33,7 @@ def initialize_gemini():
     api_key = load_api_key() # 上の関数でAPIキーを取得
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-1.5-flash') # モデル指定
+        model = genai.GenerativeModel('gemini-1.5-pro-latest') # モデル指定
         # st.success("Geminiモデル初期化完了！") # デバッグ用
         return model
     except Exception as e:
