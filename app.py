@@ -25,36 +25,50 @@ model = initialize_gemini()
 st.title("🐢 AIウミガメのスープ 🍲")
 st.write("AI相手に質問して、下の謎を解き明かそう！")
 
-# st.selectbox の代わりに st.radio を使う場合の例 (app.py の該当部分)
-
-# --- 問題選択機能 ---
-# ... (session_state, handle_problem_change はほぼ同じ考え方だが、on_changeがない) ...
+# --- 問題選択機能 (st.selectbox を使用) ---
+# session_state に選択中の問題IDがなければ初期化
 if 'current_problem_id' not in st.session_state:
     st.session_state.current_problem_id = PROBLEMS[0]['id']
 
-current_problem = next((p for p in PROBLEMS if p['id'] == st.session_state.current_problem_id), PROBLEMS[0])
-problem_titles = [p['title'] for p in PROBLEMS]
-current_index = problem_titles.index(current_problem['title'])
+# 問題選択が変更されたときの処理（コールバック関数）
+def handle_problem_change():
+    selected_title = st.session_state.problem_selector # selectbox の値を取得
+    new_problem_id = next((p['id'] for p in PROBLEMS if p['title'] == selected_title), None)
+    if new_problem_id and st.session_state.current_problem_id != new_problem_id:
+        st.session_state.current_problem_id = new_problem_id
+        # 問題が変わったら会話履歴をリセット
+        if 'chat_history' in st.session_state:
+            st.session_state.chat_history = []
+        # フォーム入力もリセットしたい場合（通常 st.form の clear_on_submit で十分）
+        # if "user_input_in_form" in st.session_state:
+        #    st.session_state.user_input_in_form = ""
 
-# st.radio を表示
-selected_title = st.radio( # ★ selectbox から radio に変更
+# 現在選択中の問題データを取得
+current_problem = next((p for p in PROBLEMS if p['id'] == st.session_state.current_problem_id), PROBLEMS[0])
+
+# 問題選択用の Selectbox (プルダウン) を表示
+problem_titles = [p['title'] for p in PROBLEMS]
+try:
+    # 現在選択中の問題がリストにあればそのインデックスを使う
+    current_index = problem_titles.index(current_problem['title'])
+except ValueError:
+    # もし何らかの理由で現在のタイトルがリストにない場合（通常は起こらないはず）、先頭を選ぶ
+    current_index = 0
+    st.session_state.current_problem_id = PROBLEMS[0]['id']
+    current_problem = PROBLEMS[0]
+
+
+# ★★★ ここで st.selectbox を使用 ★★★
+st.selectbox(
     label="問題を選択してください:",
     options=problem_titles,
     index=current_index,
-    key="problem_radio_selector", # ★ キー名も変更推奨
-    horizontal=False # ★ Trueにすると横並びになる
+    key="problem_selector",      # Selectboxの状態を管理するキー
+    on_change=handle_problem_change # 値が変わったらコールバック実行
 )
-
-# ★ st.radio には on_change がないので、選択変更時の処理を radio の後に書く
-new_problem_id = next((p['id'] for p in PROBLEMS if p['title'] == selected_title), None)
-if new_problem_id and st.session_state.current_problem_id != new_problem_id:
-    st.session_state.current_problem_id = new_problem_id
-    if 'chat_history' in st.session_state:
-        st.session_state.chat_history = []
-    st.rerun() # 状態が変わったら再実行して反映させる
-
 st.markdown("---")
 # --- 問題選択機能ここまで ---
+
 
 # --- 現在の問題を表示 ---
 st.subheader("問題")
